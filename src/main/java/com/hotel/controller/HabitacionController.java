@@ -26,7 +26,7 @@ import java.util.List;
  */
 @RestController
 @RequestMapping("/api/habitaciones")
-@Tag(name = "Habitación", description = "API para la gestión de habitaciones")
+@Tag(name = "Habitaciones", description = "API para la gestión de habitaciones")
 public class HabitacionController {
     
     @Autowired

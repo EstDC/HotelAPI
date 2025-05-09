@@ -4,6 +4,7 @@ import com.hotel.model.Servicio;
 import com.hotel.model.Hotel;
 import com.hotel.repository.ServicioRepository;
 import com.hotel.repository.HotelRepository;
+import com.hotel.exception.ResourceNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,6 +29,10 @@ public class ServicioService {
         return servicioRepository.findById(id);
     }
 
+    public boolean existsById(Long id) {
+        return servicioRepository.existsById(id);
+    }
+
     @Transactional
     public Servicio save(Servicio servicio) {
         return servicioRepository.save(servicio);
@@ -38,11 +43,15 @@ public class ServicioService {
         servicioRepository.deleteById(id);
     }
 
-    public List<Servicio> findByHotel(Hotel hotel) {
+    public List<Servicio> findByHotelId(Long hotelId) {
+        Hotel hotel = hotelRepository.findById(hotelId)
+            .orElseThrow(() -> new ResourceNotFoundException("Hotel no encontrado con ID: " + hotelId));
         return servicioRepository.findByHotel(hotel);
     }
 
-    public List<Servicio> findByHotelAndActivo(Hotel hotel) {
+    public List<Servicio> findByHotelIdAndActivo(Long hotelId) {
+        Hotel hotel = hotelRepository.findById(hotelId)
+            .orElseThrow(() -> new ResourceNotFoundException("Hotel no encontrado con ID: " + hotelId));
         return servicioRepository.findByHotelAndActivo(hotel);
     }
 
@@ -52,26 +61,21 @@ public class ServicioService {
 
     @Transactional
     public Servicio addServicioToHotel(Long hotelId, Servicio servicio) {
-        Optional<Hotel> hotelOpt = hotelRepository.findById(hotelId);
-        if (hotelOpt.isPresent()) {
-            Hotel hotel = hotelOpt.get();
-            servicio.getHoteles().add(hotel);
-            return servicioRepository.save(servicio);
-        }
-        throw new RuntimeException("Hotel no encontrado");
+        Hotel hotel = hotelRepository.findById(hotelId)
+            .orElseThrow(() -> new ResourceNotFoundException("Hotel no encontrado con ID: " + hotelId));
+        
+        servicio.getHoteles().add(hotel);
+        return servicioRepository.save(servicio);
     }
 
     @Transactional
     public Servicio removeServicioFromHotel(Long hotelId, Long servicioId) {
-        Optional<Hotel> hotelOpt = hotelRepository.findById(hotelId);
-        Optional<Servicio> servicioOpt = servicioRepository.findById(servicioId);
+        Hotel hotel = hotelRepository.findById(hotelId)
+            .orElseThrow(() -> new ResourceNotFoundException("Hotel no encontrado con ID: " + hotelId));
+        Servicio servicio = servicioRepository.findById(servicioId)
+            .orElseThrow(() -> new ResourceNotFoundException("Servicio no encontrado con ID: " + servicioId));
         
-        if (hotelOpt.isPresent() && servicioOpt.isPresent()) {
-            Hotel hotel = hotelOpt.get();
-            Servicio servicio = servicioOpt.get();
-            servicio.getHoteles().remove(hotel);
-            return servicioRepository.save(servicio);
-        }
-        throw new RuntimeException("Hotel o servicio no encontrado");
+        servicio.getHoteles().remove(hotel);
+        return servicioRepository.save(servicio);
     }
 } 

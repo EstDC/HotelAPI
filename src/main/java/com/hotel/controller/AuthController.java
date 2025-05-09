@@ -2,11 +2,13 @@ package com.hotel.controller;
 
 import com.hotel.model.Usuario;
 import com.hotel.service.UsuarioService;
+import com.hotel.security.JwtTokenProvider;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -14,6 +16,8 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
 import java.util.Map;
+
+import jakarta.servlet.http.HttpServletRequest;
 
 /**
  * Controlador REST para la autenticación de usuarios.
@@ -29,6 +33,52 @@ public class AuthController {
     
     @Autowired
     private UsuarioService usuarioService;
+
+    @Autowired
+    private JwtTokenProvider tokenProvider;
+
+    /**
+     * Autentica un usuario en el sistema.
+     *
+     * @param credenciales Credenciales del usuario (email y password)
+     * @return Token JWT y datos del usuario autenticado
+     */
+    @PostMapping("/login")
+    @Operation(summary = "Iniciar sesión", description = "Autentica un usuario en el sistema")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Login exitoso"),
+        @ApiResponse(responseCode = "401", description = "Credenciales inválidas")
+    })
+    public ResponseEntity<Map<String, Object>> login(
+            @Parameter(description = "Credenciales del usuario") @RequestBody Map<String, String> credenciales) {
+        String email = credenciales.get("email");
+        String password = credenciales.get("password");
+
+        if (email == null || password == null) {
+            Map<String, Object> response = new HashMap<>();
+            response.put("error", "Email y password son requeridos");
+            return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+        }
+
+        try {
+            Usuario usuario = usuarioService.validarCredenciales(email, password);
+            if (usuario == null || !usuario.isActivo()) {
+                Map<String, Object> response = new HashMap<>();
+                response.put("error", "Credenciales inválidas");
+                return new ResponseEntity<>(response, HttpStatus.UNAUTHORIZED);
+            }
+
+            String token = tokenProvider.generateToken(usuario);
+            Map<String, Object> response = new HashMap<>();
+            response.put("token", token);
+            response.put("usuario", usuario);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            Map<String, Object> response = new HashMap<>();
+            response.put("error", "Credenciales inválidas");
+            return new ResponseEntity<>(response, HttpStatus.UNAUTHORIZED);
+        }
+    }
 
     /**
      * Registra un nuevo usuario en el sistema.
@@ -47,43 +97,6 @@ public class AuthController {
             @Parameter(description = "Datos del usuario") @RequestBody Usuario usuario) {
         Usuario usuarioRegistrado = usuarioService.crearUsuario(usuario);
         return new ResponseEntity<>(usuarioRegistrado, HttpStatus.CREATED);
-    }
-
-    /**
-     * Autentica un usuario en el sistema.
-     *
-     * @param credenciales Credenciales del usuario (email y password)
-     * @return Datos del usuario autenticado
-     */
-    @PostMapping("/login")
-    @Operation(summary = "Iniciar sesión", description = "Autentica un usuario en el sistema")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Login exitoso"),
-        @ApiResponse(responseCode = "400", description = "Credenciales inválidas"),
-        @ApiResponse(responseCode = "401", description = "Usuario no autorizado")
-    })
-    public ResponseEntity<Map<String, Object>> login(
-            @Parameter(description = "Credenciales del usuario") @RequestBody Map<String, String> credenciales) {
-        String email = credenciales.get("email");
-        String password = credenciales.get("password");
-
-        if (email == null || password == null) {
-            return ResponseEntity.badRequest().build();
-        }
-
-        Usuario usuario = usuarioService.validarCredenciales(email, password);
-        if (usuario == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
-
-        Map<String, Object> response = new HashMap<>();
-        response.put("id", usuario.getId());
-        response.put("email", usuario.getEmail());
-        response.put("nombre", usuario.getNombre());
-        response.put("apellido", usuario.getApellido());
-        response.put("rol", usuario.getRol());
-
-        return ResponseEntity.ok(response);
     }
 
     /**
@@ -131,5 +144,34 @@ public class AuthController {
         response.put("mensaje", "Contraseña cambiada exitosamente");
         
         return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Obtiene el perfil del usuario autenticado.
+     *
+     * @param request HttpServletRequest para obtener el token
+     * @return Datos del usuario autenticado
+     */
+    @GetMapping("/perfil")
+    @Operation(
+        summary = "Obtener perfil", 
+        description = "Retorna los datos del usuario autenticado",
+        security = { @SecurityRequirement(name = "Bearer Authentication") }
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Perfil obtenido exitosamente"),
+        @ApiResponse(responseCode = "401", description = "No autorizado")
+    })
+    public ResponseEntity<Usuario> obtenerPerfil(HttpServletRequest request) {
+        String token = request.getHeader("Authorization");
+        if (token != null && token.startsWith("Bearer ")) {
+            token = token.substring(7);
+            String email = tokenProvider.getEmailFromToken(token);
+            Usuario usuario = usuarioService.obtenerUsuarioPorEmail(email);
+            if (usuario != null && usuario.isActivo()) {
+                return ResponseEntity.ok(usuario);
+            }
+        }
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
     }
 } 

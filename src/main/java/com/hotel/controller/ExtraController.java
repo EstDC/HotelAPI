@@ -25,7 +25,7 @@ import java.util.List;
  */
 @RestController
 @RequestMapping("/api/extras")
-@Tag(name = "Extra", description = "API para la gestión de servicios adicionales")
+@Tag(name = "Extras", description = "API para la gestión de servicios adicionales")
 public class ExtraController {
     
     @Autowired

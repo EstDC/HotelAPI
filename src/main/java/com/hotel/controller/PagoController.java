@@ -27,7 +27,7 @@ import java.util.List;
  */
 @RestController
 @RequestMapping("/api/pagos")
-@Tag(name = "Pago", description = "API para la gestión de pagos")
+@Tag(name = "Pagos", description = "API para la gestión de pagos")
 public class PagoController {
     
     @Autowired

@@ -32,16 +32,25 @@ public class WebConfig implements WebMvcConfigurer {
         registration.setFilter(authenticationFilter);
         registration.addUrlPatterns("/api/*");
         registration.setOrder(1);
+        registration.setEnabled(true);
+        registration.setName("authenticationFilter");
+        registration.setAsyncSupported(true);
+        registration.setDispatcherTypes(
+            jakarta.servlet.DispatcherType.REQUEST,
+            jakarta.servlet.DispatcherType.ASYNC,
+            jakarta.servlet.DispatcherType.ERROR
+        );
         return registration;
     }
 
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/api/**")
-                .allowedOrigins("*") // Permitir cualquier origen durante el desarrollo
+                .allowedOrigins("http://localhost:4321") // Origen específico del frontend
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                 .allowedHeaders("*")
-                .allowCredentials(false) // Cambiar a false cuando allowedOrigins es "*"
+                .exposedHeaders("Authorization")
+                .allowCredentials(true)
                 .maxAge(3600);
     }
 } 

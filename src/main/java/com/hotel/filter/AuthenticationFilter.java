@@ -1,19 +1,20 @@
 package com.hotel.filter;
 
-import com.hotel.model.Usuario;
-import com.hotel.model.Rol;
-import com.hotel.service.UsuarioService;
 import jakarta.servlet.*;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.springframework.util.AntPathMatcher;
+import com.hotel.service.UsuarioService;
+import com.hotel.security.JwtTokenProvider;
+import com.hotel.model.Usuario;
 
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 /**
  * Filtro de autenticación que valida las credenciales del usuario
@@ -25,62 +26,30 @@ import java.util.Set;
 @Component
 public class AuthenticationFilter implements Filter {
 
+    private static final Logger logger = LoggerFactory.getLogger(AuthenticationFilter.class);
+    private final AntPathMatcher pathMatcher = new AntPathMatcher();
+
     @Autowired
     private UsuarioService usuarioService;
+
+    @Autowired
+    private JwtTokenProvider tokenProvider;
 
     // Endpoints públicos que no requieren autenticación
     private static final List<String> PUBLIC_ENDPOINTS = Arrays.asList(
         "/api/usuarios/login",
         "/api/usuarios/registro",
+        "/api/usuarios/recuperar-password",
+        "/api/usuarios/cambiar-password",
         "/api/hoteles",
-        "/api/hoteles/buscar",
-        "/api/hoteles/buscar/ciudad",
-        "/api/hoteles/buscar/pais",
-        "/api/hoteles/buscar/estrellas",
+        "/api/hoteles/**",
         "/api/habitaciones/disponibles",
-        "/api/habitaciones/hotel",
-        // Swagger/OpenAPI endpoints
-        "/api/swagger-ui",
-        "/api/swagger-ui/",
-        "/api/swagger-ui/index.html",
-        "/api/api-docs",
-        "/api/api-docs/",
-        "/api/api-docs/swagger-config",
-        "/v3/api-docs",
-        "/v3/api-docs/",
-        "/swagger-ui.html",
-        "/swagger-ui/",
-        "/swagger-ui/index.html"
-    );
-
-    // Mapeo de roles a endpoints permitidos
-    private static final Map<Rol, Set<String>> ROLE_ENDPOINTS = Map.of(
-        Rol.PUBLICO, Set.of(
-            "/api/hoteles",
-            "/api/hoteles/buscar",
-            "/api/hoteles/buscar/ciudad",
-            "/api/hoteles/buscar/pais",
-            "/api/hoteles/buscar/estrellas",
-            "/api/habitaciones/disponibles"
-        ),
-        Rol.CLIENTE, Set.of(
-            "/api/usuarios/perfil",
-            "/api/usuarios/datos-bancarios",
-            "/api/reservas",
-            "/api/reservas/buscar",
-            "/api/pagos",
-            "/api/servicios/solicitar",
-            "/api/extras/agregar"
-        ),
-        Rol.ADMIN, Set.of(
-            "/api/usuarios",
-            "/api/hoteles",
-            "/api/habitaciones",
-            "/api/reservas",
-            "/api/pagos",
-            "/api/servicios",
-            "/api/extras"
-        )
+        "/api/habitaciones/hotel/**",
+        "/api/servicios/**",
+        "/api/swagger-ui/**",
+        "/api/api-docs/**",
+        "/v3/api-docs/**",
+        "/swagger-ui/**"
     );
 
     @Override
@@ -90,57 +59,55 @@ public class AuthenticationFilter implements Filter {
         HttpServletRequest httpRequest = (HttpServletRequest) request;
         HttpServletResponse httpResponse = (HttpServletResponse) response;
 
-        // Verificar si el endpoint es público
-        String requestPath = httpRequest.getRequestURI();
+        String contextPath = httpRequest.getContextPath();
+        String requestURI = httpRequest.getRequestURI();
+        String requestPath = requestURI.substring(contextPath.length());
+        
+        logger.debug("Procesando petición: {} {}", httpRequest.getMethod(), requestPath);
+
+        // Verificar si es un endpoint público
         if (isPublicEndpoint(requestPath)) {
+            logger.debug("Endpoint público detectado: {}", requestPath);
             chain.doFilter(request, response);
             return;
         }
 
-        // Obtener credenciales del header
-        String email = httpRequest.getHeader("X-User-Email");
-        String password = httpRequest.getHeader("X-User-Password");
-
-        // Validar credenciales
-        if (email == null || password == null) {
-            httpResponse.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            httpResponse.getWriter().write("Credenciales no proporcionadas");
+        // Obtener token del header Authorization
+        String authHeader = httpRequest.getHeader("Authorization");
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            logger.warn("No se encontró token en el header");
+            sendUnauthorizedResponse(httpResponse, "Se requiere token de autenticación");
             return;
         }
 
-        // Validar usuario contra la base de datos
-        Usuario usuario = usuarioService.validarCredenciales(email, password);
-        if (usuario == null) {
-            httpResponse.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            httpResponse.getWriter().write("Credenciales inválidas");
+        // Extraer y validar token
+        String token = authHeader.substring(7);
+        if (!tokenProvider.validateToken(token)) {
+            logger.warn("Token inválido o expirado");
+            sendUnauthorizedResponse(httpResponse, "Token inválido o expirado");
             return;
         }
 
-        // Validar permisos según el rol
-        if (!tienePermiso(usuario.getRol(), requestPath, httpRequest.getMethod())) {
-            httpResponse.setStatus(HttpServletResponse.SC_FORBIDDEN);
-            httpResponse.getWriter().write("No tiene permiso para acceder a este recurso");
-            return;
+        // Obtener email del token y verificar que el usuario existe y está activo
+        String email = tokenProvider.getEmailFromToken(token);
+        Usuario usuario = usuarioService.obtenerUsuarioPorEmail(email);
+        
+        if (usuario != null && usuario.isActivo()) {
+            logger.debug("Usuario autenticado: {}", email);
+            chain.doFilter(request, response);
+        } else {
+            logger.warn("Usuario no encontrado o inactivo: {}", email);
+            sendUnauthorizedResponse(httpResponse, "Usuario no encontrado o inactivo");
         }
+    }
 
-        // Agregar el usuario al request para uso posterior
-        request.setAttribute("usuario", usuario);
-        chain.doFilter(request, response);
+    private void sendUnauthorizedResponse(HttpServletResponse response, String message) throws IOException {
+        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        response.getWriter().write(message);
     }
 
     private boolean isPublicEndpoint(String path) {
         return PUBLIC_ENDPOINTS.stream()
-                .anyMatch(endpoint -> path.startsWith(endpoint));
-    }
-
-    private boolean tienePermiso(Rol rol, String path, String method) {
-        Set<String> endpointsPermitidos = ROLE_ENDPOINTS.get(rol);
-        if (endpointsPermitidos == null) {
-            return false;
-        }
-
-        // Verificar si el path comienza con alguno de los endpoints permitidos
-        return endpointsPermitidos.stream()
-                .anyMatch(endpoint -> path.startsWith(endpoint));
+            .anyMatch(pattern -> pathMatcher.match(pattern, path));
     }
 } 

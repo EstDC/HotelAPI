@@ -8,6 +8,7 @@ import com.hotel.exception.DuplicateResourceException;
 import com.hotel.exception.UsuarioNoEncontradoException;
 import com.hotel.exception.CredencialesInvalidasException;
 import com.hotel.exception.EmailYaRegistradoException;
+import com.hotel.security.JwtTokenProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,6 +28,9 @@ public class UsuarioService {
 
     @Autowired
     private UsuarioRepository usuarioRepository;
+
+    @Autowired
+    private JwtTokenProvider tokenProvider;
 
     /**
      * Registra un nuevo usuario en el sistema.
@@ -132,15 +136,22 @@ public class UsuarioService {
      *
      * @param email Email del usuario
      * @param password Contraseña del usuario
-     * @return Usuario si las credenciales son válidas, null en caso contrario
+     * @return Usuario si las credenciales son válidas
+     * @throws CredencialesInvalidasException si las credenciales son inválidas
      */
-    @Transactional
+    @Transactional(readOnly = true)
     public Usuario validarCredenciales(String email, String password) {
-        Usuario usuario = usuarioRepository.findByEmail(email);
-        if (usuario == null || !usuario.getPassword().equals(password)) {
-            throw new CredencialesInvalidasException("Credenciales inválidas");
+        if (email == null || password == null) {
+            return null;
         }
-        return usuario;
+
+        Usuario usuario = usuarioRepository.findByEmail(email);
+        
+        if (usuario != null && usuario.getPassword().equals(password)) {
+            return usuario;
+        }
+        
+        return null;
     }
 
     /**
@@ -262,5 +273,17 @@ public class UsuarioService {
         usuarioRepository.save(usuario);
         
         return token;
+    }
+
+    public Usuario obtenerUsuarioPorEmail(String email) {
+        return usuarioRepository.findByEmail(email);
+    }
+
+    public String login(String email, String password) {
+        Usuario usuario = validarCredenciales(email, password);
+        if (usuario != null && usuario.isActivo()) {
+            return tokenProvider.generateToken(usuario);
+        }
+        return null;
     }
 } 

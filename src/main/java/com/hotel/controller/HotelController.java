@@ -24,7 +24,7 @@ import java.util.List;
  */
 @RestController
 @RequestMapping("/api/hoteles")
-@Tag(name = "Hotel", description = "API para gestión de hoteles")
+@Tag(name = "Hoteles", description = "API para gestión de hoteles")
 public class HotelController {
     
     @Autowired
