@@ -30,6 +30,7 @@ com\hotel\service\HotelService.class
 com\hotel\repository\HabitacionRepository.class
 com\hotel\model\EstadoPago.class
 com\hotel\exception\ResourceNotFoundException.class
+com\hotel\security\JwtTokenProvider.class
 com\hotel\exception\DuplicateResourceException.class
 com\hotel\controller\PagoController.class
 com\hotel\exception\DatosBancariosNoEncontradosException.class
@@ -45,6 +46,7 @@ com\hotel\config\WebMvcConfig.class
 com\hotel\repository\PagoRepository.class
 com\hotel\repository\UsuarioRepository.class
 com\hotel\config\WebConfig.class
+com\hotel\config\OpenAPIConfig.class
 com\hotel\repository\ServicioRepository.class
 com\hotel\exception\CredencialesInvalidasException.class
 com\hotel\service\DatosBancariosService.class

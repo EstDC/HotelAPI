@@ -9,6 +9,8 @@ import com.hotel.exception.UsuarioNoEncontradoException;
 import com.hotel.exception.CredencialesInvalidasException;
 import com.hotel.exception.EmailYaRegistradoException;
 import com.hotel.security.JwtTokenProvider;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,6 +27,8 @@ import java.util.UUID;
  */
 @Service
 public class UsuarioService {
+
+    private static final Logger logger = LoggerFactory.getLogger(UsuarioService.class);
 
     @Autowired
     private UsuarioRepository usuarioRepository;
@@ -83,15 +87,51 @@ public class UsuarioService {
      */
     @Transactional
     public Usuario actualizarUsuario(Long id, Usuario usuarioDatos) {
+        logger.debug("=== INICIO ACTUALIZACIÓN USUARIO EN SERVICIO ===");
+        logger.debug("ID usuario a actualizar: {}", id);
+        logger.debug("Datos recibidos en servicio: {}", usuarioDatos);
+        
         Usuario usuario = usuarioRepository.findById(id)
             .orElseThrow(() -> new UsuarioNoEncontradoException("Usuario no encontrado"));
         
-        usuario.setNombre(usuarioDatos.getNombre());
-        usuario.setApellido(usuarioDatos.getApellido());
-        usuario.setTelefono(usuarioDatos.getTelefono());
-        usuario.setUltimaModificacion(LocalDateTime.now());
+        logger.debug("Usuario actual en BD: {}", usuario);
+
+        // Solo actualiza si el campo recibido NO es null
+        if (usuarioDatos.getNombre() != null) {
+            logger.debug("Actualizando nombre: {} -> {}", usuario.getNombre(), usuarioDatos.getNombre());
+            usuario.setNombre(usuarioDatos.getNombre());
+        }
+        if (usuarioDatos.getApellido() != null) {
+            logger.debug("Actualizando apellido: {} -> {}", usuario.getApellido(), usuarioDatos.getApellido());
+            usuario.setApellido(usuarioDatos.getApellido());
+        }
+        if (usuarioDatos.getTelefono() != null) {
+            logger.debug("Actualizando teléfono: {} -> {}", usuario.getTelefono(), usuarioDatos.getTelefono());
+            usuario.setTelefono(usuarioDatos.getTelefono());
+        }
+        if (usuarioDatos.getEmail() != null) {
+            logger.debug("Actualizando email: {} -> {}", usuario.getEmail(), usuarioDatos.getEmail());
+            usuario.setEmail(usuarioDatos.getEmail());
+        }
+        if (usuarioDatos.getRol() != null) {
+            logger.debug("Actualizando rol: {} -> {}", usuario.getRol(), usuarioDatos.getRol());
+            usuario.setRol(usuarioDatos.getRol());
+        }
+        if (usuarioDatos.getPassword() != null && !usuarioDatos.getPassword().isEmpty()) {
+            logger.debug("Actualizando contraseña: {} -> {}", usuario.getPassword(), usuarioDatos.getPassword());
+            usuario.setPassword(usuarioDatos.getPassword());
+        } else {
+            logger.debug("No se actualiza la contraseña porque es null o está vacía");
+        }
         
-        return usuarioRepository.save(usuario);
+        usuario.setUltimaModificacion(LocalDateTime.now());
+        logger.debug("Usuario antes de guardar: {}", usuario);
+        
+        Usuario usuarioGuardado = usuarioRepository.save(usuario);
+        logger.debug("Usuario después de guardar: {}", usuarioGuardado);
+        logger.debug("=== FIN ACTUALIZACIÓN USUARIO EN SERVICIO ===");
+        
+        return usuarioGuardado;
     }
 
     /**

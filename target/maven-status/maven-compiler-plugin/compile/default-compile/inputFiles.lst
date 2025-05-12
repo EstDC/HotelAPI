@@ -14,6 +14,7 @@ C:\GitHub\TFGA\HotelAPI\src\main\java\com\hotel\exception\HabitacionNoEncontrada
 C:\GitHub\TFGA\HotelAPI\src\main\java\com\hotel\config\WebConfig.java
 C:\GitHub\TFGA\HotelAPI\src\main\java\com\hotel\controller\HabitacionController.java
 C:\GitHub\TFGA\HotelAPI\src\main\java\com\hotel\model\MetodoPago.java
+C:\GitHub\TFGA\HotelAPI\src\main\java\com\hotel\security\JwtTokenProvider.java
 C:\GitHub\TFGA\HotelAPI\src\main\java\com\hotel\repository\ServicioRepository.java
 C:\GitHub\TFGA\HotelAPI\src\main\java\com\hotel\controller\ServicioController.java
 C:\GitHub\TFGA\HotelAPI\src\main\java\com\hotel\model\Usuario.java
@@ -23,6 +24,7 @@ C:\GitHub\TFGA\HotelAPI\src\main\java\com\hotel\controller\UsuarioController.jav
 C:\GitHub\TFGA\HotelAPI\src\main\java\com\hotel\service\ReservaService.java
 C:\GitHub\TFGA\HotelAPI\src\main\java\com\hotel\exception\ResourceNotFoundException.java
 C:\GitHub\TFGA\HotelAPI\src\main\java\com\hotel\exception\UnauthorizedException.java
+C:\GitHub\TFGA\HotelAPI\src\main\java\com\hotel\config\OpenAPIConfig.java
 C:\GitHub\TFGA\HotelAPI\src\main\java\com\hotel\service\ServicioService.java
 C:\GitHub\TFGA\HotelAPI\src\main\java\com\hotel\exception\DuplicateResourceException.java
 C:\GitHub\TFGA\HotelAPI\src\main\java\com\hotel\repository\DatosBancariosRepository.java
