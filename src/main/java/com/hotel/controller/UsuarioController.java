@@ -19,9 +19,11 @@ import java.util.List;
 import java.time.LocalDateTime;
 import java.util.stream.Collectors;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.JwtException;
 
 /**
  * Controlador REST para la gestión de usuarios.
@@ -90,29 +92,29 @@ public class UsuarioController {
             logger.debug("ID usuario a actualizar: {}", id);
             logger.debug("Datos recibidos: {}", usuario);
             logger.debug("Contraseña recibida: {}", usuario.getPassword());
-            logger.debug("Cuerpo de la petición: {}", request.getReader().lines().collect(Collectors.joining()));
+           // logger.debug("Cuerpo de la petición: {}", request.getReader().lines().collect(Collectors.joining()));
             
-            String token = request.getHeader("Authorization");
-            if (token == null || !token.startsWith("Bearer ")) {
+        String token = request.getHeader("Authorization");
+        if (token == null || !token.startsWith("Bearer ")) {
                 logger.warn("Token no encontrado o formato inválido");
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-            }
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
 
-            token = token.substring(7);
-            String email = tokenProvider.getEmailFromToken(token);
+        token = token.substring(7);
+        String email = tokenProvider.getEmailFromToken(token);
             logger.debug("Email del usuario que realiza la actualización: {}", email);
 
-            Usuario requestingUser = usuarioService.obtenerUsuarioPorEmail(email);
-            if (requestingUser == null || !requestingUser.isActivo()) {
+        Usuario requestingUser = usuarioService.obtenerUsuarioPorEmail(email);
+        if (requestingUser == null || !requestingUser.isActivo()) {
                 logger.warn("Usuario no encontrado o inactivo: {}", email);
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-            }
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
 
-            // Verificar permisos
-            if (!requestingUser.getId().equals(id) && requestingUser.getRol() != Rol.ADMIN) {
+        // Verificar permisos
+        if (!requestingUser.getId().equals(id) && requestingUser.getRol() != Rol.ADMIN) {
                 logger.warn("Usuario no autorizado para actualizar: {}", email);
-                return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-            }
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
 
             // Obtener el usuario actual
             Usuario usuarioActual = usuarioService.obtenerUsuarioPorId(id);
@@ -150,9 +152,9 @@ public class UsuarioController {
             logger.debug("Usuario actualizado por el servicio: {}", usuarioActualizado);
             
             // No enviar la contraseña en la respuesta
-            usuarioActualizado.setPassword(null);
+        usuarioActualizado.setPassword(null);
             logger.debug("=== FIN ACTUALIZACIÓN USUARIO ===");
-            return ResponseEntity.ok(usuarioActualizado);
+        return ResponseEntity.ok(usuarioActualizado);
         } catch (Exception e) {
             logger.error("Error al actualizar usuario: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
@@ -178,23 +180,62 @@ public class UsuarioController {
         @ApiResponse(responseCode = "404", description = "Usuario no encontrado")
     })
     public ResponseEntity<Usuario> obtenerUsuarioPorId(
-            @Parameter(description = "ID del usuario") @PathVariable Long id,
+            @Parameter(description = "ID del usuario") @PathVariable("id") Long id,
             HttpServletRequest request) {
-        String token = request.getHeader("Authorization");
-        if (token != null && token.startsWith("Bearer ")) {
+        try {
+            logger.debug("=== INICIO OBTENER USUARIO POR ID ===");
+            logger.debug("ID solicitado: {}", id);
+            
+            String token = request.getHeader("Authorization");
+            if (token == null || !token.startsWith("Bearer ")) {
+                logger.warn("Token no encontrado o formato inválido");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            }
+
             token = token.substring(7);
             String email = tokenProvider.getEmailFromToken(token);
+            logger.debug("Email del usuario que realiza la petición: {}", email);
+
             Usuario requestingUser = usuarioService.obtenerUsuarioPorEmail(email);
+            if (requestingUser == null || !requestingUser.isActivo()) {
+                logger.warn("Usuario no encontrado o inactivo: {}", email);
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            }
+
+            // LOGS DETALLADOS DE ROL Y PERMISOS
+            logger.info("Usuario que realiza la petición: ID={}, Rol={}", requestingUser.getId(), requestingUser.getRol());
+            logger.info("Comparando con Rol.ADMIN: {}", requestingUser.getRol().equals(Rol.ADMIN));
+            logger.info("ID del usuario autenticado: {} (tipo: {})", requestingUser.getId(), requestingUser.getId().getClass().getName());
+            logger.info("ID solicitado: {} (tipo: {})", id, id.getClass().getName());
+            logger.info("¿Son iguales los IDs?: {}", requestingUser.getId().equals(id));
+            logger.info("¿Son iguales los IDs (==)?: {}", requestingUser.getId() == id);
+
+            // Si el usuario solicitado no existe, devolver 404
             Usuario requestedUser = usuarioService.obtenerUsuarioPorId(id);
-            
-            // Allow access if user is requesting their own data or is an admin
-            if (requestingUser != null && 
-                (requestingUser.getId().equals(id) || requestingUser.getRol() == Rol.ADMIN)) {
+            if (requestedUser == null) {
+                logger.warn("Usuario solicitado no encontrado: {}", id);
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+            }
+            logger.debug("Usuario solicitado: ID={}, Rol={}", requestedUser.getId(), requestedUser.getRol());
+
+            // Verificar permisos: el usuario puede acceder a sus propios datos o si es admin
+            boolean isOwnData = requestingUser.getId().longValue() == id.longValue();
+            boolean isAdmin = requestingUser.getRol().equals(Rol.ADMIN);
+            logger.debug("Verificación de permisos: isOwnData={}, isAdmin={}", isOwnData, isAdmin);
+
+            if (isOwnData || isAdmin) {
+                logger.debug("Acceso autorizado para usuario: {}", email);
                 return ResponseEntity.ok(requestedUser);
             }
+
+            logger.warn("Acceso denegado para usuario: {} (ID={})", email, requestingUser.getId());
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        } catch (Exception e) {
+            logger.error("Error al obtener usuario por ID: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        } finally {
+            logger.debug("=== FIN OBTENER USUARIO POR ID ===");
         }
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
     }
 
     /**
@@ -279,10 +320,13 @@ public class UsuarioController {
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Perfil obtenido exitosamente"),
         @ApiResponse(responseCode = "401", description = "No autorizado"),
+        @ApiResponse(responseCode = "403", description = "No tiene permiso para acceder a este recurso"),
         @ApiResponse(responseCode = "404", description = "Usuario no encontrado")
     })
     public ResponseEntity<Usuario> obtenerPerfil(HttpServletRequest request) {
         try {
+            logger.debug("=== INICIO OBTENER PERFIL ===");
+            
             String token = request.getHeader("Authorization");
             if (token == null || !token.startsWith("Bearer ")) {
                 logger.warn("Token no encontrado o formato inválido");
@@ -290,15 +334,8 @@ public class UsuarioController {
             }
 
             token = token.substring(7);
-            
-            // Validar el token antes de extraer el email
-            if (!tokenProvider.validateToken(token)) {
-                logger.warn("Token inválido o expirado");
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-            }
-
             String email = tokenProvider.getEmailFromToken(token);
-            logger.debug("Obteniendo perfil para usuario: {}", email);
+            logger.debug("Email del usuario que solicita el perfil: {}", email);
 
             Usuario usuario = usuarioService.obtenerUsuarioPorEmail(email);
             if (usuario == null) {
@@ -311,11 +348,29 @@ public class UsuarioController {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
             }
 
+            // LOGS DETALLADOS DE ROL
+            logger.info("Rol del usuario autenticado: {}", usuario.getRol());
+            logger.info("Comparando con Rol.CLIENTE: {}", usuario.getRol().equals(Rol.CLIENTE));
+            logger.info("Comparando con Rol.ADMIN: {}", usuario.getRol().equals(Rol.ADMIN));
+
+            // Verificar que el usuario tenga el rol correcto
+            if (!usuario.getRol().equals(Rol.CLIENTE) && !usuario.getRol().equals(Rol.ADMIN)) {
+                logger.warn("Usuario no autorizado: {} (Rol: {})", email, usuario.getRol());
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+            }
+
             // No enviar la contraseña en la respuesta
             usuario.setPassword(null);
 
             logger.debug("Perfil obtenido exitosamente para usuario: {}", email);
+            logger.debug("=== FIN OBTENER PERFIL ===");
             return ResponseEntity.ok(usuario);
+        } catch (ExpiredJwtException e) {
+            logger.warn("Token expirado: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        } catch (JwtException e) {
+            logger.warn("Token inválido: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         } catch (Exception e) {
             logger.error("Error al obtener perfil: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();

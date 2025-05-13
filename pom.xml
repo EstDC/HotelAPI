@@ -79,6 +79,19 @@
             <version>2.3.0</version>
         </dependency>
         
+        <!-- Spring Security -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security</artifactId>
+        </dependency>
+        
+        <!-- Servlet API -->
+        <dependency>
+            <groupId>jakarta.servlet</groupId>
+            <artifactId>jakarta.servlet-api</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        
         <!-- Test -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

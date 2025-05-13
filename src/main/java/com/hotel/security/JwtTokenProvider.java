@@ -17,7 +17,7 @@ public class JwtTokenProvider {
     @Value("${jwt.expiration}")
     private long expirationTime;
     
-    private Key getSigningKey() {
+    public Key getSigningKey() {
         return Keys.hmacShaKeyFor(secretKey.getBytes());
     }
 
@@ -27,6 +27,7 @@ public class JwtTokenProvider {
 
         return Jwts.builder()
                 .setSubject(usuario.getEmail())
+                .claim("id", usuario.getId())
                 .claim("rol", usuario.getRol().toString())
                 .setIssuedAt(now)
                 .setExpiration(expiryDate)
@@ -44,15 +45,47 @@ public class JwtTokenProvider {
         return claims.getSubject();
     }
 
-    public boolean validateToken(String token) {
-        try {
-            Jwts.parserBuilder()
+    public Long getIdFromToken(String token) {
+        Claims claims = Jwts.parserBuilder()
                 .setSigningKey(getSigningKey())
                 .build()
-                .parseClaimsJws(token);
+                .parseClaimsJws(token)
+                .getBody();
+
+        return claims.get("id", Long.class);
+    }
+
+    public boolean validateToken(String token) {
+        try {
+            Claims claims = Jwts.parserBuilder()
+                .setSigningKey(getSigningKey())
+                .build()
+                .parseClaimsJws(token)
+                .getBody();
+
+            // Verificar que el token no haya expirado
+            if (claims.getExpiration().before(new Date())) {
+                return false;
+            }
+
+            // Verificar que el token tenga los claims necesarios
+            if (claims.get("id") == null || claims.get("rol") == null) {
+                return false;
+            }
+
             return true;
         } catch (JwtException | IllegalArgumentException e) {
             return false;
         }
+    }
+
+    public String getRolFromToken(String token) {
+        Claims claims = Jwts.parserBuilder()
+                .setSigningKey(getSigningKey())
+                .build()
+                .parseClaimsJws(token)
+                .getBody();
+
+        return claims.get("rol", String.class);
     }
 } 

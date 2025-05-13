@@ -17,6 +17,7 @@ C:\GitHub\TFGA\HotelAPI\src\main\java\com\hotel\model\MetodoPago.java
 C:\GitHub\TFGA\HotelAPI\src\main\java\com\hotel\security\JwtTokenProvider.java
 C:\GitHub\TFGA\HotelAPI\src\main\java\com\hotel\repository\ServicioRepository.java
 C:\GitHub\TFGA\HotelAPI\src\main\java\com\hotel\controller\ServicioController.java
+C:\GitHub\TFGA\HotelAPI\src\main\java\com\hotel\filter\CustomCorsFilter.java
 C:\GitHub\TFGA\HotelAPI\src\main\java\com\hotel\model\Usuario.java
 C:\GitHub\TFGA\HotelAPI\src\main\java\com\hotel\repository\ReservaRepository.java
 C:\GitHub\TFGA\HotelAPI\src\main\java\com\hotel\model\Extra.java
@@ -44,6 +45,7 @@ C:\GitHub\TFGA\HotelAPI\src\main\java\com\hotel\exception\DatosBancariosNoEncont
 C:\GitHub\TFGA\HotelAPI\src\main\java\com\hotel\repository\HotelRepository.java
 C:\GitHub\TFGA\HotelAPI\src\main\java\com\hotel\exception\EmailYaRegistradoException.java
 C:\GitHub\TFGA\HotelAPI\src\main\java\com\hotel\exception\ErrorResponse.java
+C:\GitHub\TFGA\HotelAPI\src\main\java\com\hotel\config\SecurityConfig.java
 C:\GitHub\TFGA\HotelAPI\src\main\java\com\hotel\repository\HabitacionRepository.java
 C:\GitHub\TFGA\HotelAPI\src\main\java\com\hotel\controller\HotelController.java
 C:\GitHub\TFGA\HotelAPI\src\main\java\com\hotel\model\Pago.java

@@ -12,12 +12,20 @@ import com.hotel.security.JwtTokenProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.security.core.GrantedAuthority;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
+import java.util.Collections;
+import java.util.ArrayList;
 
 /**
  * Servicio que maneja la lógica de negocio relacionada con los usuarios.
@@ -26,7 +34,7 @@ import java.util.UUID;
  * @version 1.0
  */
 @Service
-public class UsuarioService {
+public class UsuarioService implements UserDetailsService {
 
     private static final Logger logger = LoggerFactory.getLogger(UsuarioService.class);
 
@@ -35,6 +43,24 @@ public class UsuarioService {
 
     @Autowired
     private JwtTokenProvider tokenProvider;
+
+    @Override
+    public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
+        Usuario usuario = usuarioRepository.findByEmail(email);
+        if (usuario == null) {
+            throw new UsernameNotFoundException("Usuario no encontrado con email: " + email);
+        }
+        if (!usuario.isActivo()) {
+            throw new UsernameNotFoundException("Usuario inactivo");
+        }
+        List<GrantedAuthority> authorities = new ArrayList<>();
+        authorities.add(new SimpleGrantedAuthority("ROLE_" + usuario.getRol().name()));
+        return new org.springframework.security.core.userdetails.User(
+            usuario.getEmail(),
+            usuario.getPassword(),
+            authorities
+        );
+    }
 
     /**
      * Registra un nuevo usuario en el sistema.
@@ -49,7 +75,6 @@ public class UsuarioService {
         if (usuarioRepository.findByEmail(usuario.getEmail()) != null) {
             throw new EmailYaRegistradoException("El email ya está registrado");
         }
-        
         usuario.setRol(Rol.CLIENTE);
         usuario.setActivo(true);
         usuario.setFechaRegistro(LocalDateTime.now());
@@ -99,15 +124,15 @@ public class UsuarioService {
         // Solo actualiza si el campo recibido NO es null
         if (usuarioDatos.getNombre() != null) {
             logger.debug("Actualizando nombre: {} -> {}", usuario.getNombre(), usuarioDatos.getNombre());
-            usuario.setNombre(usuarioDatos.getNombre());
+        usuario.setNombre(usuarioDatos.getNombre());
         }
         if (usuarioDatos.getApellido() != null) {
             logger.debug("Actualizando apellido: {} -> {}", usuario.getApellido(), usuarioDatos.getApellido());
-            usuario.setApellido(usuarioDatos.getApellido());
+        usuario.setApellido(usuarioDatos.getApellido());
         }
         if (usuarioDatos.getTelefono() != null) {
             logger.debug("Actualizando teléfono: {} -> {}", usuario.getTelefono(), usuarioDatos.getTelefono());
-            usuario.setTelefono(usuarioDatos.getTelefono());
+        usuario.setTelefono(usuarioDatos.getTelefono());
         }
         if (usuarioDatos.getEmail() != null) {
             logger.debug("Actualizando email: {} -> {}", usuario.getEmail(), usuarioDatos.getEmail());
@@ -119,7 +144,7 @@ public class UsuarioService {
         }
         if (usuarioDatos.getPassword() != null && !usuarioDatos.getPassword().isEmpty()) {
             logger.debug("Actualizando contraseña: {} -> {}", usuario.getPassword(), usuarioDatos.getPassword());
-            usuario.setPassword(usuarioDatos.getPassword());
+        usuario.setPassword(usuarioDatos.getPassword());
         } else {
             logger.debug("No se actualiza la contraseña porque es null o está vacía");
         }
@@ -184,13 +209,10 @@ public class UsuarioService {
         if (email == null || password == null) {
             return null;
         }
-
         Usuario usuario = usuarioRepository.findByEmail(email);
-        
         if (usuario != null && usuario.getPassword().equals(password)) {
             return usuario;
         }
-        
         return null;
     }
 
@@ -306,12 +328,10 @@ public class UsuarioService {
         if (usuario == null) {
             throw new UsuarioNoEncontradoException("Usuario no encontrado");
         }
-        
         String token = UUID.randomUUID().toString();
         usuario.setTokenRecuperacion(token);
         usuario.setTokenExpiracion(LocalDateTime.now().plusHours(24));
         usuarioRepository.save(usuario);
-        
         return token;
     }
 

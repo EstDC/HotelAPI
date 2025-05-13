@@ -7,7 +7,6 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.security.SecurityScheme;
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
-import io.swagger.v3.oas.models.security.SecurityRequirement;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -39,6 +38,6 @@ public class OpenAPIConfig {
                         .bearerFormat("JWT")
                         .in(io.swagger.v3.oas.models.security.SecurityScheme.In.HEADER)
                         .name("Authorization")))
-            .addSecurityItem(new SecurityRequirement().addList("Bearer Authentication"));
+            .addSecurityItem(new io.swagger.v3.oas.models.security.SecurityRequirement().addList("Bearer Authentication"));
     }
 } 

@@ -14,8 +14,10 @@ com\hotel\model\TipoHabitacion.class
 com\hotel\controller\HabitacionController.class
 com\hotel\controller\HotelController.class
 com\hotel\service\ReservaService.class
+com\hotel\filter\CustomCorsFilter.class
 com\hotel\service\ServicioService.class
 com\hotel\model\Extra.class
+com\hotel\config\SecurityConfig.class
 com\hotel\exception\ValidationErrorResponse.class
 com\hotel\model\Reserva.class
 com\hotel\controller\DatosBancariosController.class
@@ -49,6 +51,7 @@ com\hotel\config\WebConfig.class
 com\hotel\config\OpenAPIConfig.class
 com\hotel\repository\ServicioRepository.class
 com\hotel\exception\CredencialesInvalidasException.class
+com\hotel\filter\AuthenticationFilter$ErrorResponse.class
 com\hotel\service\DatosBancariosService.class
 com\hotel\controller\UsuarioController.class
 com\hotel\exception\HabitacionNoEncontradaException.class
