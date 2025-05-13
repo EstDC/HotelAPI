@@ -1,4 +1,5 @@
 com\hotel\model\Habitacion.class
+com\hotel\model\ReservaExtra.class
 com\hotel\model\MetodoPago.class
 com\hotel\exception\EmailYaRegistradoException.class
 com\hotel\controller\ServicioController.class
@@ -36,6 +37,7 @@ com\hotel\security\JwtTokenProvider.class
 com\hotel\exception\DuplicateResourceException.class
 com\hotel\controller\PagoController.class
 com\hotel\exception\DatosBancariosNoEncontradosException.class
+com\hotel\model\ReservaExtraId.class
 com\hotel\repository\DatosBancariosRepository.class
 com\hotel\exception\UsuarioNoEncontradoException.class
 com\hotel\exception\UnauthorizedException.class

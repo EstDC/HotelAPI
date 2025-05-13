@@ -34,13 +34,8 @@ public class Reserva {
     @Column(name = "numero_huespedes", nullable = false)
     private Integer numeroHuespedes;
 
-    @ManyToMany
-    @JoinTable(
-        name = "reserva_extras",
-        joinColumns = @JoinColumn(name = "reserva_id"),
-        inverseJoinColumns = @JoinColumn(name = "extra_id")
-    )
-    private Set<Extra> extras;
+    @OneToMany(mappedBy = "reserva", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<ReservaExtra> reservaExtras = new java.util.HashSet<>();
 
     @Column(name = "precio_total", nullable = false)
     private Double precioTotal;

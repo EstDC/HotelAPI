@@ -2,6 +2,7 @@ package com.hotel.service;
 
 import com.hotel.model.Extra;
 import com.hotel.model.Reserva;
+import com.hotel.model.ReservaExtra;
 import com.hotel.repository.ExtraRepository;
 import com.hotel.repository.ReservaRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -84,7 +85,14 @@ public class ExtraService {
             throw new RuntimeException("El extra no está disponible");
         }
         
-        reserva.getExtras().add(extra);
+        ReservaExtra reservaExtra = new ReservaExtra();
+        reservaExtra.setReserva(reserva);
+        reservaExtra.setExtra(extra);
+        reservaExtra.setCantidad(1); // O la cantidad que corresponda
+        reservaExtra.setPrecioUnitario(extra.getPrecio());
+        reserva.getReservaExtras().add(reservaExtra);
+        
+        // Actualizar precio total
         reserva.setPrecioTotal(reserva.getPrecioTotal() + extra.getPrecio());
         
         return reservaRepository.save(reserva);
@@ -106,7 +114,9 @@ public class ExtraService {
         Extra extra = extraRepository.findById(extraId)
             .orElseThrow(() -> new RuntimeException("Extra no encontrado"));
         
-        reserva.getExtras().remove(extra);
+        reserva.getReservaExtras().removeIf(re -> re.getExtra().getId().equals(extra.getId()));
+        
+        // Actualizar precio total
         reserva.setPrecioTotal(reserva.getPrecioTotal() - extra.getPrecio());
         
         return reservaRepository.save(reserva);

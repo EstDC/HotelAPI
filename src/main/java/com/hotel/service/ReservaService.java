@@ -4,9 +4,11 @@ import com.hotel.model.Reserva;
 import com.hotel.model.Usuario;
 import com.hotel.model.Habitacion;
 import com.hotel.model.EstadoReserva;
+import com.hotel.model.Extra;
 import com.hotel.repository.ReservaRepository;
 import com.hotel.repository.UsuarioRepository;
 import com.hotel.repository.HabitacionRepository;
+import com.hotel.repository.ExtraRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,6 +18,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Servicio para gestionar las reservas de habitaciones.
@@ -35,39 +38,63 @@ public class ReservaService {
     @Autowired
     private HabitacionRepository habitacionRepository;
 
+    @Autowired
+    private ExtraRepository extraRepository;
+
     /**
      * Crea una nueva reserva.
      * Verifica la disponibilidad de la habitación y la validez de las fechas.
      *
-     * @param usuarioId ID del usuario que realiza la reserva
-     * @param habitacionId ID de la habitación a reservar
-     * @param reserva Datos de la reserva
+     * @param reserva Datos de la reserva (incluyendo usuario, habitacion y reservaExtras)
      * @return La reserva creada
      * @throws RuntimeException si la habitación no está disponible o las fechas son inválidas
      */
-    public Reserva crearReserva(Long usuarioId, Long habitacionId, Reserva reserva) {
+    public Reserva crearReserva(Reserva reserva) {
+        // Cargar usuario y habitación completos por ID
+        Long usuarioId = reserva.getUsuario().getId();
+        Long habitacionId = reserva.getHabitacion().getId();
         Usuario usuario = usuarioRepository.findById(usuarioId)
             .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
-        
         Habitacion habitacion = habitacionRepository.findById(habitacionId)
             .orElseThrow(() -> new RuntimeException("Habitación no encontrada"));
-        
-        // Convertir LocalDate a LocalDateTime
-        LocalDateTime fechaEntrada = LocalDateTime.of(reserva.getFechaEntrada().toLocalDate(), LocalTime.of(14, 0));
-        LocalDateTime fechaSalida = LocalDateTime.of(reserva.getFechaSalida().toLocalDate(), LocalTime.of(12, 0));
-        
+
+        // Convertir LocalDateTime a la hora estándar de check-in/check-out si es necesario
+        LocalDateTime fechaEntrada = reserva.getFechaEntrada();
+        LocalDateTime fechaSalida = reserva.getFechaSalida();
+
         // Verificar disponibilidad
         if (!verificarDisponibilidad(habitacion, fechaEntrada, fechaSalida)) {
             throw new RuntimeException("La habitación no está disponible para las fechas seleccionadas");
         }
-        
+
         reserva.setUsuario(usuario);
         reserva.setHabitacion(habitacion);
         reserva.setEstado(EstadoReserva.PENDIENTE);
         reserva.setFechaCreacion(LocalDateTime.now());
         reserva.setFechaEntrada(fechaEntrada);
         reserva.setFechaSalida(fechaSalida);
-        
+
+        // Inicializar precio total con el precio de la habitación
+        final Double precioInicial = habitacion.getPrecioPorNoche();
+        final AtomicReference<Double> precioTotal = new AtomicReference<>(precioInicial);
+        reserva.setPrecioTotal(precioInicial);
+
+        // Asociar correctamente los ReservaExtra y calcular precio total
+        if (reserva.getReservaExtras() != null) {
+            reserva.getReservaExtras().forEach(re -> {
+                re.setReserva(reserva);
+                if (re.getExtra() != null && re.getExtra().getId() != null) {
+                    Extra extra = extraRepository.findById(re.getExtra().getId())
+                        .orElseThrow(() -> new RuntimeException("Extra no encontrado"));
+                    re.setExtra(extra);
+                    re.setPrecioUnitario(extra.getPrecio());
+                    // Sumar al precio total: precio del extra * cantidad
+                    precioTotal.updateAndGet(current -> current + (extra.getPrecio() * re.getCantidad()));
+                }
+            });
+            reserva.setPrecioTotal(precioTotal.get());
+        }
+
         return reservaRepository.save(reserva);
     }
 
@@ -100,12 +127,23 @@ public class ReservaService {
                     reserva.setNumeroHuespedes(reservaActualizada.getNumeroHuespedes());
                 }
                 
-                if (reservaActualizada.getExtras() != null) {
-                    reserva.setExtras(reservaActualizada.getExtras());
-                }
-                
-                if (reservaActualizada.getPrecioTotal() != null) {
-                    reserva.setPrecioTotal(reservaActualizada.getPrecioTotal());
+                if (reservaActualizada.getReservaExtras() != null) {
+                    // Recalcular precio total con los nuevos extras
+                    final Double precioInicial = reserva.getHabitacion().getPrecioPorNoche();
+                    final AtomicReference<Double> precioTotal = new AtomicReference<>(precioInicial);
+                    
+                    reservaActualizada.getReservaExtras().forEach(re -> {
+                        re.setReserva(reserva);
+                        if (re.getExtra() != null && re.getExtra().getId() != null) {
+                            Extra extra = extraRepository.findById(re.getExtra().getId())
+                                .orElseThrow(() -> new RuntimeException("Extra no encontrado"));
+                            re.setExtra(extra);
+                            re.setPrecioUnitario(extra.getPrecio());
+                            precioTotal.updateAndGet(current -> current + (extra.getPrecio() * re.getCantidad()));
+                        }
+                    });
+                    reserva.setReservaExtras(reservaActualizada.getReservaExtras());
+                    reserva.setPrecioTotal(precioTotal.get());
                 }
                 
                 reserva.setFechaActualizacion(LocalDateTime.now());
@@ -200,5 +238,29 @@ public class ReservaService {
 
     public List<Reserva> buscarReservasPorEstado(String estado) {
         return reservaRepository.findByEstado(EstadoReserva.valueOf(estado.toUpperCase()));
+    }
+
+    /**
+     * Devuelve una lista de fechas ocupadas (String ISO) para una habitación (excluyendo reservas canceladas).
+     * @param habitacionId ID de la habitación
+     * @return Lista de fechas ocupadas (String ISO yyyy-MM-dd)
+     */
+    public List<String> obtenerFechasOcupadasPorHabitacion(Long habitacionId) {
+        Habitacion habitacion = habitacionRepository.findById(habitacionId)
+            .orElseThrow(() -> new RuntimeException("Habitación no encontrada"));
+        List<Reserva> reservas = reservaRepository.findByHabitacion(habitacion);
+        List<String> fechasOcupadas = new java.util.ArrayList<>();
+        for (Reserva r : reservas) {
+            if (r.getEstado() != EstadoReserva.CANCELADA) {
+                LocalDate start = r.getFechaEntrada().toLocalDate();
+                LocalDate end = r.getFechaSalida().toLocalDate();
+                LocalDate current = start;
+                while (!current.isAfter(end.minusDays(1))) {
+                    fechasOcupadas.add(current.toString());
+                    current = current.plusDays(1);
+                }
+            }
+        }
+        return fechasOcupadas;
     }
 } 

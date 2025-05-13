@@ -35,8 +35,6 @@ public class ReservaController {
     /**
      * Crea una nueva reserva.
      *
-     * @param usuarioId ID del usuario
-     * @param habitacionId ID de la habitación
      * @param reserva Datos de la reserva a crear
      * @return Reserva creada
      */
@@ -48,11 +46,8 @@ public class ReservaController {
         @ApiResponse(responseCode = "404", description = "Habitación o usuario no encontrado"),
         @ApiResponse(responseCode = "409", description = "Habitación no disponible en las fechas especificadas")
     })
-    public ResponseEntity<Reserva> crearReserva(
-            @Parameter(description = "ID del usuario") @RequestParam Long usuarioId,
-            @Parameter(description = "ID de la habitación") @RequestParam Long habitacionId,
-            @Parameter(description = "Datos de la reserva") @RequestBody Reserva reserva) {
-        Reserva nuevaReserva = reservaService.crearReserva(usuarioId, habitacionId, reserva);
+    public ResponseEntity<Reserva> crearReserva(@RequestBody Reserva reserva) {
+        Reserva nuevaReserva = reservaService.crearReserva(reserva);
         return new ResponseEntity<>(nuevaReserva, HttpStatus.CREATED);
     }
 
@@ -187,5 +182,22 @@ public class ReservaController {
             @Parameter(description = "Estado de la reserva") @RequestParam String estado) {
         List<Reserva> reservas = reservaService.buscarReservasPorEstado(estado);
         return ResponseEntity.ok(reservas);
+    }
+
+    /**
+     * Devuelve las fechas ocupadas de una habitación (excluyendo reservas canceladas).
+     * @param habitacionId ID de la habitación
+     * @return Lista de fechas ocupadas (String ISO)
+     */
+    @GetMapping("/habitacion/{habitacionId}/fechas-ocupadas")
+    @Operation(summary = "Fechas ocupadas de una habitación", description = "Devuelve las fechas ocupadas de una habitación (excluyendo reservas canceladas)")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Lista de fechas ocupadas obtenida exitosamente"),
+        @ApiResponse(responseCode = "404", description = "Habitación no encontrada")
+    })
+    public ResponseEntity<List<String>> obtenerFechasOcupadasPorHabitacion(
+            @Parameter(description = "ID de la habitación") @PathVariable Long habitacionId) {
+        List<String> fechasOcupadas = reservaService.obtenerFechasOcupadasPorHabitacion(habitacionId);
+        return ResponseEntity.ok(fechasOcupadas);
     }
 } 

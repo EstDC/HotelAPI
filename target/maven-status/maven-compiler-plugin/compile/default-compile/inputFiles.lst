@@ -2,12 +2,14 @@ C:\GitHub\TFGA\HotelAPI\src\main\java\com\hotel\config\WebMvcConfig.java
 C:\GitHub\TFGA\HotelAPI\src\main\java\com\hotel\model\Rol.java
 C:\GitHub\TFGA\HotelAPI\src\main\java\com\hotel\repository\ExtraRepository.java
 C:\GitHub\TFGA\HotelAPI\src\main\java\com\hotel\service\HabitacionService.java
+C:\GitHub\TFGA\HotelAPI\src\main\java\com\hotel\model\ReservaExtraId.java
 C:\GitHub\TFGA\HotelAPI\src\main\java\com\hotel\filter\AuthenticationFilter.java
 C:\GitHub\TFGA\HotelAPI\src\main\java\com\hotel\model\Habitacion.java
 C:\GitHub\TFGA\HotelAPI\src\main\java\com\hotel\service\ExtraService.java
 C:\GitHub\TFGA\HotelAPI\src\main\java\com\hotel\service\PagoService.java
 C:\GitHub\TFGA\HotelAPI\src\main\java\com\hotel\controller\AuthController.java
 C:\GitHub\TFGA\HotelAPI\src\main\java\com\hotel\model\EstadoReserva.java
+C:\GitHub\TFGA\HotelAPI\src\main\java\com\hotel\model\ReservaExtra.java
 C:\GitHub\TFGA\HotelAPI\src\main\java\com\hotel\model\EstadoPago.java
 C:\GitHub\TFGA\HotelAPI\src\main\java\com\hotel\controller\ExtraController.java
 C:\GitHub\TFGA\HotelAPI\src\main\java\com\hotel\exception\HabitacionNoEncontradaException.java
