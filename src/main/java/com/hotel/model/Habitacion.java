@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import java.util.Set;
 
 @Data
@@ -18,8 +19,13 @@ public class Habitacion {
 
     @ManyToOne
     @JoinColumn(name = "hotel_id", nullable = false)
-    @com.fasterxml.jackson.annotation.JsonBackReference
+    @JsonIgnoreProperties("habitaciones")
     private Hotel hotel;
+
+    //@ManyToOne
+    //@JoinColumn(name = "hotel_id", nullable = false)
+    //@com.fasterxml.jackson.annotation.JsonBackReference
+    //private Hotel hotel;
 
     @Column(nullable = false)
     private String numero;

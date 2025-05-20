@@ -5,6 +5,8 @@ import com.hotel.model.Usuario;
 import com.hotel.model.Habitacion;
 import com.hotel.model.EstadoReserva;
 import com.hotel.model.Extra;
+import com.hotel.model.ReservaExtra;
+import com.hotel.model.ReservaExtraId;
 import com.hotel.repository.ReservaRepository;
 import com.hotel.repository.UsuarioRepository;
 import com.hotel.repository.HabitacionRepository;
@@ -50,54 +52,75 @@ public class ReservaService {
      * @throws RuntimeException si la habitación no está disponible o las fechas son inválidas
      */
     public Reserva crearReserva(Reserva reserva) {
-        // Cargar usuario y habitación completos por ID
-        Long usuarioId = reserva.getUsuario().getId();
-        Long habitacionId = reserva.getHabitacion().getId();
-        Usuario usuario = usuarioRepository.findById(usuarioId)
-            .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
-        Habitacion habitacion = habitacionRepository.findById(habitacionId)
-            .orElseThrow(() -> new RuntimeException("Habitación no encontrada"));
+    System.out.println("=== DEPURACIÓN ReservaService.crearReserva ===");
+    System.out.println("Reserva en servicio: " + reserva);
+    System.out.println("Usuario ID: " + (reserva.getUsuario() != null ? reserva.getUsuario().getId() : "null"));
+    System.out.println("Habitación ID: " + (reserva.getHabitacion() != null ? reserva.getHabitacion().getId() : "null"));
 
-        // Convertir LocalDateTime a la hora estándar de check-in/check-out si es necesario
-        LocalDateTime fechaEntrada = reserva.getFechaEntrada();
-        LocalDateTime fechaSalida = reserva.getFechaSalida();
+    // Cargar usuario y habitación completos por ID
+    Long usuarioId = reserva.getUsuario().getId();
+    Long habitacionId = reserva.getHabitacion().getId();
+    
+    System.out.println("Buscando usuario ID: " + usuarioId);
+    System.out.println("Buscando habitación ID: " + habitacionId);
+    
+    Usuario usuario = usuarioRepository.findById(usuarioId)
+        .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+    Habitacion habitacion = habitacionRepository.findById(habitacionId)
+        .orElseThrow(() -> new RuntimeException("Habitación no encontrada"));
 
-        // Verificar disponibilidad
-        if (!verificarDisponibilidad(habitacion, fechaEntrada, fechaSalida)) {
-            throw new RuntimeException("La habitación no está disponible para las fechas seleccionadas");
-        }
+    // Convertir LocalDateTime a la hora estándar de check-in/check-out si es necesario
+    LocalDateTime fechaEntrada = reserva.getFechaEntrada();
+    LocalDateTime fechaSalida = reserva.getFechaSalida();
 
-        reserva.setUsuario(usuario);
-        reserva.setHabitacion(habitacion);
-        reserva.setEstado(EstadoReserva.PENDIENTE);
-        reserva.setFechaCreacion(LocalDateTime.now());
-        reserva.setFechaEntrada(fechaEntrada);
-        reserva.setFechaSalida(fechaSalida);
-
-        // Inicializar precio total con el precio de la habitación
-        final Double precioInicial = habitacion.getPrecioPorNoche();
-        final AtomicReference<Double> precioTotal = new AtomicReference<>(precioInicial);
-        reserva.setPrecioTotal(precioInicial);
-
-        // Asociar correctamente los ReservaExtra y calcular precio total
-        if (reserva.getReservaExtras() != null) {
-            reserva.getReservaExtras().forEach(re -> {
-                re.setReserva(reserva);
-                if (re.getExtra() != null && re.getExtra().getId() != null) {
-                    Extra extra = extraRepository.findById(re.getExtra().getId())
-                        .orElseThrow(() -> new RuntimeException("Extra no encontrado"));
-                    re.setExtra(extra);
-                    re.setPrecioUnitario(extra.getPrecio());
-                    // Sumar al precio total: precio del extra * cantidad
-                    precioTotal.updateAndGet(current -> current + (extra.getPrecio() * re.getCantidad()));
-                }
-            });
-            reserva.setPrecioTotal(precioTotal.get());
-        }
-
-        return reservaRepository.save(reserva);
+    // Verificar disponibilidad
+    if (!verificarDisponibilidad(habitacion, fechaEntrada, fechaSalida)) {
+        throw new RuntimeException("La habitación no está disponible para las fechas seleccionadas");
     }
 
+    reserva.setUsuario(usuario);
+    reserva.setHabitacion(habitacion);
+    reserva.setEstado(EstadoReserva.PENDIENTE);
+    reserva.setFechaCreacion(LocalDateTime.now());
+    reserva.setFechaEntrada(fechaEntrada);
+    reserva.setFechaSalida(fechaSalida);
+
+    // Calcular número de noches
+    long numeroNoches = fechaEntrada.toLocalDate().until(fechaSalida.toLocalDate()).getDays();
+    Double precioHabitacion = habitacion.getPrecioPorNoche() * numeroNoches;
+    Double precioTotal = precioHabitacion;
+
+    // Procesar ReservaExtras si existen
+    if (reserva.getReservaExtras() != null && !reserva.getReservaExtras().isEmpty()) {
+        for (ReservaExtra re : reserva.getReservaExtras()) {
+            // Establecer la referencia de vuelta a la reserva
+            re.setReserva(reserva);
+            
+            // Crear un nuevo ID para ReservaExtra
+            ReservaExtraId reId = new ReservaExtraId();
+            reId.setExtraId(re.getExtra().getId());
+            re.setId(reId);
+            
+            // Cargar el extra completo
+            Extra extra = extraRepository.findById(re.getExtra().getId())
+                .orElseThrow(() -> new RuntimeException("Extra no encontrado"));
+            re.setExtra(extra);
+            
+            // Establecer precios
+            re.setPrecioUnitario(extra.getPrecio());
+            re.setPrecioTotal(extra.getPrecio() * re.getCantidad());
+            
+            // Sumar al precio total
+            precioTotal += re.getPrecioTotal();
+        }
+    }
+
+    reserva.setPrecioTotal(precioTotal);
+    
+    System.out.println("Precio total calculado: " + precioTotal);
+    
+    return reservaRepository.save(reserva);
+}
     /**
      * Actualiza una reserva existente.
      * Solo permite actualizar ciertos campos y verifica la disponibilidad si se cambian las fechas.
@@ -262,5 +285,13 @@ public class ReservaService {
             }
         }
         return fechasOcupadas;
+    }
+
+    public Reserva actualizarEstadoReserva(Long id, String nuevoEstado) {
+        Reserva reserva = reservaRepository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Reserva no encontrada con id: " + id));
+        reserva.setEstado(EstadoReserva.valueOf(nuevoEstado));
+        reserva.setFechaActualizacion(java.time.LocalDateTime.now());
+        return reservaRepository.save(reserva);
     }
 } 

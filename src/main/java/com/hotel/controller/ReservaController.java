@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Controlador REST para gestionar las reservas del sistema.
@@ -38,7 +39,7 @@ public class ReservaController {
      * @param reserva Datos de la reserva a crear
      * @return Reserva creada
      */
-    @PostMapping
+    @PostMapping(consumes = {"application/json", "application/json;charset=UTF-8"})
     @Operation(summary = "Crear reserva", description = "Crea una nueva reserva en el sistema")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "201", description = "Reserva creada exitosamente"),
@@ -47,8 +48,24 @@ public class ReservaController {
         @ApiResponse(responseCode = "409", description = "Habitación no disponible en las fechas especificadas")
     })
     public ResponseEntity<Reserva> crearReserva(@RequestBody Reserva reserva) {
+           try{ System.out.println("=== DEPURACIÓN POST /api/reservas ===");
+            System.out.println("Reserva recibida: " + reserva);
+            System.out.println("Usuario: " + (reserva.getUsuario() != null ? reserva.getUsuario() : "null"));
+            System.out.println("Habitación: " + (reserva.getHabitacion() != null ? reserva.getHabitacion() : "null"));
+            System.out.println("Extras: " + (reserva.getReservaExtras() != null ? reserva.getReservaExtras().size() + " extras" : "null"));
+            System.out.println("========================================");
+    
         Reserva nuevaReserva = reservaService.crearReserva(reserva);
         return new ResponseEntity<>(nuevaReserva, HttpStatus.CREATED);
+        
+        }catch (Exception e) {
+        System.out.println("=== ERROR EN crearReserva ===");
+        System.out.println("Tipo de error: " + e.getClass().getSimpleName());
+        System.out.println("Mensaje: " + e.getMessage());
+        e.printStackTrace();
+        System.out.println("=============================");
+        throw e;
+        }
     }
 
     /**
@@ -199,5 +216,19 @@ public class ReservaController {
             @Parameter(description = "ID de la habitación") @PathVariable Long habitacionId) {
         List<String> fechasOcupadas = reservaService.obtenerFechasOcupadasPorHabitacion(habitacionId);
         return ResponseEntity.ok(fechasOcupadas);
+    }
+
+    @PutMapping("/{id}/estado")
+    @Operation(summary = "Actualizar solo el estado de la reserva", description = "Permite cambiar el estado de la reserva sin modificar otros datos")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Estado actualizado exitosamente"),
+        @ApiResponse(responseCode = "404", description = "Reserva no encontrada")
+    })
+    public ResponseEntity<Reserva> actualizarEstadoReserva(
+            @PathVariable Long id,
+            @RequestBody Map<String, String> body) {
+        String nuevoEstado = body.get("estado");
+        Reserva reservaActualizada = reservaService.actualizarEstadoReserva(id, nuevoEstado);
+        return ResponseEntity.ok(reservaActualizada);
     }
 } 

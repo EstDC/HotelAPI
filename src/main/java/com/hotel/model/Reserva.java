@@ -2,12 +2,16 @@ package com.hotel.model;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 import java.time.LocalDateTime;
 import java.util.Set;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 
 @Data
+@EqualsAndHashCode(exclude = {"reservaExtras"})
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
@@ -23,6 +27,7 @@ public class Reserva {
 
     @ManyToOne
     @JoinColumn(name = "habitacion_id", nullable = false)
+    @JsonIgnoreProperties({"hotel"})
     private Habitacion habitacion;
 
     @Column(name = "fecha_entrada", nullable = false)

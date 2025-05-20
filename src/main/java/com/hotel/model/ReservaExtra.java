@@ -2,8 +2,13 @@ package com.hotel.model;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
+
 
 @Data
+@EqualsAndHashCode(exclude = {"reserva"})
 @Entity
 @Table(name = "reserva_extras")
 public class ReservaExtra {
@@ -13,6 +18,7 @@ public class ReservaExtra {
     @ManyToOne
     @MapsId("reservaId")
     @JoinColumn(name = "reserva_id")
+    @JsonIgnore
     private Reserva reserva;
 
     @ManyToOne
@@ -25,4 +31,7 @@ public class ReservaExtra {
 
     @Column(name = "precio_unitario", nullable = false)
     private Double precioUnitario;
+
+    @Column(name = "precio_total", nullable = false)
+    private Double precioTotal;
 } 

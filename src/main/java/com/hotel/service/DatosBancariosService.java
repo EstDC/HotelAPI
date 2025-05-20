@@ -72,6 +72,10 @@ public class DatosBancariosService {
                 datos.setTitular(datosActualizados.getTitular());
                 datos.setFechaExpiracion(datosActualizados.getFechaExpiracion());
                 datos.setCvv(datosActualizados.getCvv());
+                // Permitir reactivar la tarjeta
+                if (datosActualizados.isActiva() && !datos.isActiva()) {
+                    datos.setActiva(true);
+                }
                 return datosBancariosRepository.save(datos);
             })
             .orElseThrow(() -> new RuntimeException("Datos bancarios no encontrados"));

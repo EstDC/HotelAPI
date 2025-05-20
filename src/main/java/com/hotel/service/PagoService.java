@@ -46,7 +46,9 @@ public class PagoService {
             .orElseThrow(() -> new RuntimeException("Reserva no encontrada"));
         
         pago.setReserva(reserva);
-        pago.setEstado(EstadoPago.PENDIENTE);
+        if (pago.getEstado() == null) {
+            pago.setEstado(EstadoPago.PENDIENTE);
+        }
         pago.setReferenciaPago(generarReferenciaPago());
         pago.setFechaPago(LocalDateTime.now());
         

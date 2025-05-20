@@ -15,4 +15,5 @@ public interface HabitacionRepository extends JpaRepository<Habitacion, Long> {
     List<Habitacion> findByHotelAndTipoAndActiva(Hotel hotel, String tipo, boolean activa);
     List<Habitacion> findByHotelAndPrecioPorNocheBetweenAndActiva(Hotel hotel, Double precioMin, Double precioMax, boolean activa);
     List<Habitacion> findByHotelAndTipoAndPrecioPorNocheBetweenAndActiva(Hotel hotel, String tipo, Double precioMin, Double precioMax, boolean activa);
+    List<Habitacion> findAll();
 } 

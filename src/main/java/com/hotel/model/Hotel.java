@@ -4,7 +4,9 @@ import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import java.util.List;
+import java.util.ArrayList;
 
 @Data
 @NoArgsConstructor
@@ -53,16 +55,28 @@ public class Hotel {
     @Column
     private Double longitud;
 
-    @OneToMany(mappedBy = "hotel")
-    @com.fasterxml.jackson.annotation.JsonManagedReference
-    private List<Habitacion> habitaciones;
+    @OneToMany(mappedBy = "hotel", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JsonIgnoreProperties("hotel")
+    private List<Habitacion> habitaciones = new ArrayList<>();
 
+    //@OneToMany(mappedBy = "hotel")
+    //@com.fasterxml.jackson.annotation.JsonManagedReference
+    //private List<Habitacion> habitaciones;
+
+    //@ManyToMany
+    //@JoinTable(
+    //    name = "hotel_servicios",
+    //    joinColumns = @JoinColumn(name = "hotel_id"),
+    //    inverseJoinColumns = @JoinColumn(name = "servicio_id")
+    //)
+    //@com.fasterxml.jackson.annotation.JsonManagedReference
+    //private List<Servicio> servicios;
     @ManyToMany
     @JoinTable(
         name = "hotel_servicios",
         joinColumns = @JoinColumn(name = "hotel_id"),
         inverseJoinColumns = @JoinColumn(name = "servicio_id")
     )
-    @com.fasterxml.jackson.annotation.JsonManagedReference
+    @JsonIgnoreProperties("hoteles")
     private List<Servicio> servicios;
 } 

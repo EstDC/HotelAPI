@@ -146,4 +146,20 @@ public class HabitacionService {
             return habitacionRepository.findByHotelAndActiva(hotel, true);
         }
     }
+
+    public List<Habitacion> buscarHabitacionesDisponiblesGlobal(String fechaInicioStr, String fechaFinStr) {
+        LocalDate fechaInicio = LocalDate.parse(fechaInicioStr);
+        LocalDate fechaFin = LocalDate.parse(fechaFinStr);
+
+        // Busca todas las habitaciones activas de todos los hoteles
+        List<Habitacion> todas = habitacionRepository.findAll()
+            .stream()
+            .filter(Habitacion::isActiva)
+            .collect(Collectors.toList());
+
+        // Filtra solo las disponibles en el rango de fechas
+        return todas.stream()
+            .filter(habitacion -> verificarDisponibilidad(habitacion.getId(), fechaInicio, fechaFin))
+            .collect(Collectors.toList());
+    }
 } 

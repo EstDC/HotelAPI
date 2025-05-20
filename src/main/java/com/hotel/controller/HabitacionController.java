@@ -187,4 +187,20 @@ public class HabitacionController {
         habitacionService.desactivarHabitacion(id);
         return ResponseEntity.noContent().build();
     }
+
+    /**
+     * Busca habitaciones disponibles en un rango de fechas para todos los hoteles.
+     *
+     * @param fechaInicio Fecha de inicio
+     * @param fechaFin Fecha de fin
+     * @return Lista de habitaciones disponibles
+     */
+    @GetMapping("/habitaciones/disponibles-global")
+    public ResponseEntity<List<Habitacion>> buscarHabitacionesDisponiblesGlobal(
+        @RequestParam String fechaInicio,
+        @RequestParam String fechaFin
+    ) {
+        List<Habitacion> disponibles = habitacionService.buscarHabitacionesDisponiblesGlobal(fechaInicio, fechaFin);
+        return ResponseEntity.ok(disponibles);
+    }
 } 

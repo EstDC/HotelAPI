@@ -13,7 +13,11 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
-import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+import org.springframework.http.converter.HttpMessageConverter;
+import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
+import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
+
+import java.util.List;
 
 /**
  * Configuración web de la aplicación.
@@ -56,5 +60,28 @@ public class WebConfig implements WebMvcConfigurer {
         // Eliminado: registry.addInterceptor(new AuthenticationInterceptor())
         //         .addPathPatterns("/api/**")
         //         .excludePathPatterns("/api/auth/**", "/api/hoteles/**", "/api/habitaciones/**");
+    }
+
+    //WebMvcConfig
+    @Override
+    public void addResourceHandlers(ResourceHandlerRegistry registry) {
+        // Configurar los recursos estáticos para que no interfieran con las rutas de la API
+        registry.addResourceHandler("/static/**")
+                .addResourceLocations("classpath:/static/");
+    }
+
+    //Configuración global de los media types soportados
+    @Override
+    public void extendMessageConverters(List<HttpMessageConverter<?>> converters) {
+        for (HttpMessageConverter<?> converter : converters) {
+            if (converter instanceof MappingJackson2HttpMessageConverter jacksonConverter) {
+                jacksonConverter.setSupportedMediaTypes(
+                    List.of(
+                        org.springframework.http.MediaType.APPLICATION_JSON,
+                        org.springframework.http.MediaType.valueOf("application/json;charset=UTF-8")
+                    )
+                );
+            }
+        }
     }
 } 
