@@ -46,7 +46,6 @@ com\hotel\HotelApplication.class
 com\hotel\model\DatosBancarios.class
 com\hotel\model\Servicio.class
 com\hotel\repository\ExtraRepository.class
-com\hotel\config\WebMvcConfig.class
 com\hotel\repository\PagoRepository.class
 com\hotel\repository\UsuarioRepository.class
 com\hotel\config\WebConfig.class

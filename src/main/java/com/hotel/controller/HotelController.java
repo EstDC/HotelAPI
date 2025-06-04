@@ -163,4 +163,15 @@ public class HotelController {
         hotelService.eliminarHotel(id);
         return ResponseEntity.ok().build();
     }
+
+    /**
+     * Obtiene todos los hoteles del sistema, incluyendo los inactivos.
+     *
+     * @return Lista de hoteles
+     */
+    @GetMapping("/admin/todos")
+    @Operation(summary = "Obtener todos los hoteles (incluyendo inactivos)")
+    public ResponseEntity<List<Hotel>> obtenerTodosHotelesAdmin() {
+        return ResponseEntity.ok(hotelService.obtenerTodosIncluyendoInactivos());
+    }
 } 

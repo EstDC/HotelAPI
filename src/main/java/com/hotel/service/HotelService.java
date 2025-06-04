@@ -74,4 +74,8 @@ public class HotelService {
         }
         return hotelRepository.findByActivoTrue();
     }
+
+    public List<Hotel> obtenerTodosIncluyendoInactivos() {
+        return hotelRepository.findAll();
+    }   
 } 

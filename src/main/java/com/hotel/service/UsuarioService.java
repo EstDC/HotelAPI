@@ -142,6 +142,8 @@ public class UsuarioService implements UserDetailsService {
             logger.debug("Actualizando rol: {} -> {}", usuario.getRol(), usuarioDatos.getRol());
             usuario.setRol(usuarioDatos.getRol());
         }
+        logger.debug("Actualizando activo: {} -> {}", usuario.isActivo(), usuarioDatos.isActivo());
+        usuario.setActivo(usuarioDatos.isActivo());
         if (usuarioDatos.getPassword() != null && !usuarioDatos.getPassword().isEmpty()) {
             logger.debug("Actualizando contraseña: {} -> {}", usuario.getPassword(), usuarioDatos.getPassword());
         usuario.setPassword(usuarioDatos.getPassword());

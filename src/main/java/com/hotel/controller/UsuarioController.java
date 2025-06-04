@@ -143,7 +143,7 @@ public class UsuarioController {
             }
 
             // Asegurarnos de que todos los campos necesarios estén establecidos
-            usuarioActual.setActivo(true);
+           // usuarioActual.setActivo(usuario.getActivo());
             usuarioActual.setRol(usuarioActual.getRol()); // Mantener el rol actual
             usuarioActual.setFechaRegistro(usuarioActual.getFechaRegistro()); // Mantener la fecha de registro
 
